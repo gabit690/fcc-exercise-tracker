@@ -3,6 +3,9 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 
+const mongoose = require('mongoose');
+const database = require('./src/database');
+
 app.use(cors())
 app.use(express.static('public'))
 app.get('/', (req, res) => {
