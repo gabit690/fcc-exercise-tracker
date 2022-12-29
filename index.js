@@ -6,8 +6,14 @@ require('dotenv').config()
 const mongoose = require('mongoose');
 const database = require('./src/database');
 
+const userRouter = require('./src/routes/users');
+
 app.use(cors())
 app.use(express.static('public'))
+app.use('/user', userRouter);
+
+
+
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
