@@ -9,7 +9,7 @@ const userRouter = require('./src/routes/users')
 const app = express()
 
 app.use(cors())
-app.use(express.static('public'))
+app.use('/public', express.static(`${__dirname}/public`))
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 app.use('/api/users', userRouter);
