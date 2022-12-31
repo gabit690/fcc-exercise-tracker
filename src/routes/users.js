@@ -94,9 +94,5 @@ function createResponseObject(user, limit) {
         })
     };
 }
-// /api/users/63af9c9c1c108c90dbfd9be1/logs?from=2022-06-01&to=2022-06-31
-
-// {"_id":"63af8af6cc1d683431f8b718","username":"user","count":3,"log":[{"description":"Push and rotation 1","duration":12,"date":"Sat Dec 31 2022"},{"description":"Push and rotation 2","duration":12,"date":"Tue Oct 11 2022"},{"description":"Push and rotation 3","duration":23,"date":"Tue Oct 11 2022"}]}
-
 
 module.exports = router;
