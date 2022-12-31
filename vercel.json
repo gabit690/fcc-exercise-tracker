@@ -8,5 +8,8 @@
             "src": "/(.*)",
             "dest": "/"
         }
-    ]
+    ],
+    "env": {
+      "VERCEL_HTTP_TIMEOUT": "30000"
+    }
 }

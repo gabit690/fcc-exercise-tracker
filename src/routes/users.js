@@ -4,6 +4,10 @@ const Exercise = require('../models/exercise')
 
 const router = express.Router()
 
+router.get('hello', (req, res) => {
+    res.send("Hello project")
+})
+
 router.get('/', (req, res) => {
     User.find().select('-__v')
         .then(users => res.json(users))
