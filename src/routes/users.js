@@ -4,33 +4,37 @@ const Exercise = require('../models/exercise')
 
 const router = express.Router()
 
-router.get('hello', (req, res) => {
-    res.send("Hello project")
-})
-
 router.get('/', (req, res) => {
-    User.find().select('-__v')
+    User.find()
         .then(users => res.json(users))
-        .catch(err => res.sendStatus(500))
+        .catch(err => res.json(err))
 })
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
+
+    const findUser = await User.findOne({username: req.body.username})
+    if (findUser) return res.json(findUser)
 
     const user = new User({
         username: req.body.username
     });
 
     user.save()
-        .then(savedUSer => {
-            const userObject = savedUSer.toObject()
-            delete userObject.exercises
-            delete userObject.__v
-            res.json(userObject)
-        })
+        .then(savedUSer => res.json(savedUSer))
         .catch(err => res.json(err))
 })
 
-router.post('/:_id/exercises', (req, res) => {
+router.post('/:_id/exercises', async (req, res) => {
+
+    const userId = req.params['_id']
+    const foundUser = await User.findById(userId)
+
+
+    if(!foundUser) {
+        return res.json({
+            message: "No user exists fot that id"
+        })
+    }
 
     if (isNaN(req.body.duration) || (req.body.duration < 0)) {
         return res.json("Duration must be a number greater than 0.")
@@ -40,59 +44,68 @@ router.post('/:_id/exercises', (req, res) => {
         if (!/\d{4}-\d{2}-\d{2}/.test(req.body.date)) {
             return res.json("Date format must be yyyy-mm-dd")
         }
-        req.body.date = new Date(req.body.date);
+        req.body.date = new Date(req.body.date)
     } else {
-        req.body.date = new Date();
+        req.body.date = new Date()
     }
 
-    User.findById(req.body[':_id'], (err, user) => {
-        if(err) return res.sendStatus(404)
-        const exercise = new Exercise(req.body)
-        user.exercises.push(exercise._id)
-        exercise.save()
-        user.save()
-        res.json({
-            "_id": user._id,
-            "username": user.username,
-            "date": exercise.date.toDateString(),
-            "duration": exercise.duration,
-            "description": exercise.description
-        })
+    await Exercise.create({
+        username: foundUser.username,
+        description: req.body.description,
+        duration: req.body.duration,
+        date: req.body.date,
+        userId: userId
+    })
+
+    res.json({
+        _id: userId,
+        username: foundUser.username,
+        date: req.body.date.toDateString(),
+        duration: parseInt(req.body.duration),
+        description: req.body.description
     })
 });
 
-router.get('/:_id/logs', (req, res) => {
+router.get('/:_id/logs', async (req, res) => {
 
     const fromDate = req.query.from ? new Date(req.query.from) : null
     const toDate = req.query.to ? new Date(req.query.to) : null
 
-    const match = {}
-    if (fromDate && toDate) {
-        match.date = {
-            $gte: fromDate,
-            $lte: toDate
-        }
+    const foundUser = await User.findById(req.params._id)
+
+    if(!foundUser) {
+        return res.json({
+            message: "No user exists fot that id"
+        })
     }
 
-    User.findById(req.params._id)
-        .populate({
-            path: 'exercises',
-            match: match
-        })
-        .exec((err, user) => {
-            if (err) return res.sendStatus(404)
-            const limit = req.query.limit ? parseInt(req.query.limit) : user.exercises.length
-            res.json(createResponseObject(user, limit))
-        })
+    const filters = { userId: req.params._id }
+
+    if (fromDate && !toDate) filters.date = { $gte: fromDate }
+    if (toDate && !fromDate) filters.date = { $lte: toDate }
+    if (toDate && fromDate) filters.date = { $gte: fromDate, $lte: toDate }
+
+    Exercise.find(filters, async (err, exercises) => {
+
+        if (!exercises) return res.json({ message: 'There are no exercises for the user.'})
+
+        const findUser = await User.findById(req.params._id)
+
+        const limit = req.query.limit ? parseInt(req.query.limit) : exercises.length
+        const username = findUser.username
+        const userId = findUser._id
+
+        res.json(createResponseObject(userId, username, exercises, limit))
+    })
 })
 
-function createResponseObject(user, limit) {
+function createResponseObject(userId, username, exercises, limit) {
     return {
-        "_id": user._id,
-        "username": user.username,
-        "count": limit,
-        "log": user.exercises.slice(0, limit).map(exercise => {
-            const { _id, __v, ...exerciseObject } = exercise.toObject();
+        _id: userId,
+        username: username,
+        count: limit,
+        log: exercises.slice(0, limit).map(exercise => {
+            const { username, _id, userId, ...exerciseObject } = exercise.toObject();
             exerciseObject.date = exerciseObject.date.toDateString()
             return exerciseObject;
         })
